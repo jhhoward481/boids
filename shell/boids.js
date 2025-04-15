@@ -1,9 +1,9 @@
 // Constants
 const CONFIG = {
-  numBoids: 1000, // Number of boids
+  numBoids: 100, // Number of boids
   perceptionRadius: 50, // Radius within which boids perceive others
   maxSpeed: 1, // Maximum speed of boids
-  maxForce: 0.05 // Maximum steering force
+  maxForce: 0.05, // Maximum steering force
 };
 
 // Global variables
@@ -14,11 +14,15 @@ let boids = [];
 let positionBuffer, colorBuffer;
 let aPosition, aColor;
 let program;
+let delaunayMode = false; // Toggle for Delaunay triangulation
 
 // Global variables for FPS calculation
 let lastFrameTime = performance.now();
 let fps = 0;
 let lastFpsUpdateTime = performance.now(); // Track the last time the FPS counter was updated
+
+// Global variables for Delaunay triangulation
+let delaunayColorsMap = new Map(); // Map to store colors for each triangle based on boid indices
 
 // Boid Class
 class Boid {
@@ -146,6 +150,58 @@ function limitVec2(vec, max) {
   }
 }
 
+function renderDelaunay(positions) {
+  // Use Delaunator to compute the triangulation
+  const delaunay = new Delaunator(positions);
+  const triangles = delaunay.triangles;
+
+  // Prepare data for rendering
+  const triangleVertices = [];
+  const triangleColors = [];
+
+  for (let i = 0; i < triangles.length; i += 3) {
+    const p1Index = triangles[i];
+    const p2Index = triangles[i + 1];
+    const p3Index = triangles[i + 2];
+
+    const p1 = positions.slice(p1Index * 2, p1Index * 2 + 2);
+    const p2 = positions.slice(p2Index * 2, p2Index * 2 + 2);
+    const p3 = positions.slice(p3Index * 2, p3Index * 2 + 2);
+
+    // Add triangle vertices
+    triangleVertices.push(...p1, ...p2, ...p3);
+
+    // Generate a unique key for the triangle based on sorted indices
+    const triangleKey = [p1Index, p2Index, p3Index].sort((a, b) => a - b).join('-');
+
+    // Check if the triangle already has an assigned color
+    if (!delaunayColorsMap.has(triangleKey)) {
+      // Assign a new muted, transparent color
+      const color = [Math.random() * 0.5, Math.random() * 0.5, Math.random() * 0.5, 0.5];
+      delaunayColorsMap.set(triangleKey, color);
+    }
+
+    // Retrieve the color for this triangle
+    const color = delaunayColorsMap.get(triangleKey);
+    triangleColors.push(...color, ...color, ...color);
+  }
+
+  // Pass triangle vertices to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+
+  // Pass triangle colors to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleColors), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aColor);
+
+  // Draw triangles
+  gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
+}
+
 // Core Functions
 function render() {
   const now = performance.now();
@@ -155,43 +211,51 @@ function render() {
 
   // Update FPS counter only 10 times per second
   if (now - lastFpsUpdateTime >= 100) {
-    const fpsCounter = document.getElementById('fpsCounter');
-    if (fpsCounter) {
-      fpsCounter.textContent = `FPS: ${fps}`;
+    const fpsValue = document.getElementById('fpsValue');
+    const delaunayIndicator = document.getElementById('delaunayIndicator');
+
+    if (fpsValue) {
+      fpsValue.textContent = `FPS: ${fps}`;
     }
+
+    if (delaunayIndicator) {
+      delaunayIndicator.style.display = delaunayMode ? 'block' : 'none';
+    }
+
     lastFpsUpdateTime = now;
   }
 
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // Prepare position and color data
+  // Prepare position data
   const positions = [];
-  const colors = [];
   for (let boid of boids) {
     boid.edges();
     boid.flock(boids);
     boid.update();
     const [ndcX, ndcY] = toNDC(boid.position[0], boid.position[1]);
     positions.push(ndcX, ndcY);
-
-    // Add the current color for each boid
-    colors.push(...currentColor);
   }
 
-  // Pass positions to WebGL
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(aPosition);
+  if (delaunayMode) {
+    renderDelaunay(positions);
+  } else {
+    // Pass positions to WebGL
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(aPosition);
 
-  // Pass colors to WebGL
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-  gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(aColor);
+    // Pass colors to WebGL
+    const colors = new Array(boids.length * 4).fill(0).map((_, i) => currentColor[i % 4]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(aColor);
 
-  // Draw points
-  gl.drawArrays(gl.POINTS, 0, boids.length);
+    // Draw points
+    gl.drawArrays(gl.POINTS, 0, boids.length);
+  }
 
   requestAnimationFrame(render);
 }
@@ -246,6 +310,13 @@ function main() {
   for (let i = 0; i < CONFIG.numBoids; i++) {
     boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height));
   }
+
+  // Add event listener for the D key
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'd' || event.key === 'D') {
+      delaunayMode = !delaunayMode; // Toggle Delaunay mode
+    }
+  });
 
   // Start rendering
   gl.clearColor(0, 0, 0, 1);
