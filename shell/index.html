@@ -11,7 +11,12 @@
 <body>
   <div id="fpsCounter" style="position: absolute; top: 10px; left: 10px; color: white; font-family: Arial, sans-serif; font-size: 14px; z-index: 100;">
     <div id="fpsValue">FPS: 0</div>
-    <div id="delaunayIndicator" style="display: none;">D</div>
+    <div id="indicators">
+      <span id="delaunayIndicator" style="display: none;">D</span>
+      <span id="perceptionRadiusIndicator" style="display: none;">C</span>
+      <span id="speedColorIndicator" style="display: none;">S</span>
+      <span id="objectIndicator" style="display: none;">O</span>
+    </div>
   </div>
   <canvas id="flockCanvas" width="800" height="600"></canvas>
   <script src="https://cdn.jsdelivr.net/npm/delaunator@5.0.0/delaunator.min.js"></script>

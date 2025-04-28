@@ -2,9 +2,9 @@
 const CONFIG = {
   numBoids: 1000, // Number of boids
   perceptionRadius: 50, // Radius within which boids perceive others
-  maxSpeed: 1, // Maximum speed of boids
+  maxSpeed: 7, // Maximum speed of boids
   maxForce: 0.05, // Maximum steering force
-  bounceEdges: false, // Toggle for edge behavior: true = bounce, false = wrap around
+  bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
 };
 
 // Global variables
@@ -17,6 +17,9 @@ let aPosition, aColor;
 let program;
 let delaunayMode = false; // Toggle for Delaunay triangulation
 let objects = [];
+let showPerceptionRadius = false;
+let speedColorMode = true; // Toggle for speed-based coloring
+let showObjects = false; // Toggle for displaying objects
 
 // Global variables for FPS calculation
 let lastFrameTime = performance.now();
@@ -275,35 +278,92 @@ function renderObjects() {
   gl.drawArrays(gl.TRIANGLES, 0, objectVertices.length / 2);
 }
 
+function renderPerceptionRadius() {
+  const circleVertices = [];
+  const circleColors = [];
+  const numSegments = 50; // Number of segments to approximate the circle
+
+  for (let boid of boids) {
+    const centerX = (boid.position[0] / canvas.width) * 2 - 1; // Convert to NDC
+    const centerY = (boid.position[1] / canvas.height) * -2 + 1; // Convert to NDC
+    const radius = (CONFIG.perceptionRadius / 2 / canvas.width) * 2; // Half the perception radius, converted to NDC
+
+    // Generate vertices for the circle
+    for (let i = 0; i <= numSegments; i++) {
+      const angle = (i / numSegments) * Math.PI * 2;
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      circleVertices.push(x, y);
+
+      // Use a very dark gray color for the circle
+      circleColors.push(0.1, 0.1, 0.1, 0.05); // Very dark gray with low transparency
+    }
+  }
+
+  // Pass circle vertices to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleVertices), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+
+  // Pass circle colors to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleColors), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aColor);
+
+  // Draw the circles as line loops
+  let offset = 0;
+  for (let i = 0; i < boids.length; i++) {
+    gl.drawArrays(gl.LINE_LOOP, offset, numSegments + 1);
+    offset += numSegments + 1;
+  }
+}
+
 // Core Functions
 function render() {
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
   const now = performance.now();
   const delta = now - lastFrameTime;
   fps = Math.round(1000 / delta); // Calculate FPS
   lastFrameTime = now;
 
-  // Update FPS counter only 10 times per second
+  // Update FPS counter and indicators only 10 times per second
   if (now - lastFpsUpdateTime >= 100) {
     const fpsValue = document.getElementById('fpsValue');
     const delaunayIndicator = document.getElementById('delaunayIndicator');
+    const perceptionRadiusIndicator = document.getElementById('perceptionRadiusIndicator');
+    const speedColorIndicator = document.getElementById('speedColorIndicator');
+    const objectIndicator = document.getElementById('objectIndicator');
 
     if (fpsValue) {
       fpsValue.textContent = `FPS: ${fps}`;
     }
 
     if (delaunayIndicator) {
-      delaunayIndicator.style.display = delaunayMode ? 'block' : 'none';
+      delaunayIndicator.style.display = delaunayMode ? 'inline' : 'none';
+    }
+
+    if (perceptionRadiusIndicator) {
+      perceptionRadiusIndicator.style.display = showPerceptionRadius ? 'inline' : 'none';
+    }
+
+    if (speedColorIndicator) {
+      speedColorIndicator.style.display = speedColorMode ? 'inline' : 'none';
+    }
+
+    if (objectIndicator) {
+      objectIndicator.style.display = showObjects ? 'inline' : 'none';
     }
 
     lastFpsUpdateTime = now;
   }
 
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
-  // Prepare position data for Delaunay triangulation
-  const positions = [];
+  // Prepare position and color data for boids
   const triangleVertices = [];
   const triangleColors = [];
+  const positions = []; // For Delaunay triangulation
 
   for (let boid of boids) {
     boid.edges();
@@ -336,8 +396,34 @@ function render() {
     // Add triangle vertices
     triangleVertices.push(tipX, tipY, baseLeftX, baseLeftY, baseRightX, baseRightY);
 
+    // Calculate color based on speed
+    let color = currentColor; // Default color
+    if (speedColorMode) {
+      const speed = vec2.length(boid.velocity);
+      const speedRatio = speed / CONFIG.maxSpeed; // Normalize speed to [0, 1]
+
+      // Interpolate between colors based on speed
+      if (speedRatio < 0.5) {
+        // Slow: Dark purple/blue
+        color = [
+          0.2 + speedRatio * 0.6, // Red
+          0.0,                   // Green
+          0.5 + speedRatio * 0.5, // Blue
+          1.0                    // Alpha
+        ];
+      } else {
+        // Fast: Pink
+        color = [
+          0.5 + (speedRatio - 0.5) * 0.5, // Red
+          0.0,                            // Green
+          0.5 - (speedRatio - 0.5) * 0.5, // Blue
+          1.0                             // Alpha
+        ];
+      }
+    }
+
     // Add color for the triangle
-    triangleColors.push(...currentColor, ...currentColor, ...currentColor);
+    triangleColors.push(...color, ...color, ...color);
   }
 
   if (delaunayMode) {
@@ -361,8 +447,15 @@ function render() {
     gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
   }
 
-  // Render objects
-  renderObjects();
+  // Render perception radius circles if enabled
+  if (showPerceptionRadius) {
+    renderPerceptionRadius();
+  }
+
+  // Render objects if enabled
+  if (showObjects) {
+    renderObjects();
+  }
 
   requestAnimationFrame(render);
 }
@@ -427,10 +520,19 @@ async function main() {
   // Load objects from JSON
   await loadObjects();
 
-  // Add event listener for the D key
+  // Add event listeners for toggles
   document.addEventListener('keydown', (event) => {
     if (event.key === 'd' || event.key === 'D') {
       delaunayMode = !delaunayMode; // Toggle Delaunay mode
+    }
+    if (event.key === 'c' || event.key === 'C') {
+      showPerceptionRadius = !showPerceptionRadius; // Toggle perception radius visibility
+    }
+    if (event.key === 's' || event.key === 'S') {
+      speedColorMode = !speedColorMode; // Toggle speed-based coloring
+    }
+    if (event.key === 'o' || event.key === 'O') {
+      showObjects = !showObjects; // Toggle object display
     }
   });
 
