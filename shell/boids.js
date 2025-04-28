@@ -296,7 +296,7 @@ function renderPerceptionRadius() {
       circleVertices.push(x, y);
 
       // Use a very dark gray color for the circle
-      circleColors.push(0.1, 0.1, 0.1, 0.05); // Very dark gray with low transparency
+      circleColors.push(0.3, 0.3, 0.3, 0.5); // Very dark gray with low transparency
     }
   }
 
@@ -317,6 +317,43 @@ function renderPerceptionRadius() {
   for (let i = 0; i < boids.length; i++) {
     gl.drawArrays(gl.LINE_LOOP, offset, numSegments + 1);
     offset += numSegments + 1;
+  }
+}
+
+function updateConfig(key, value) {
+  if (typeof CONFIG[key] !== 'undefined') {
+    // Update CONFIG values
+    CONFIG[key] = typeof CONFIG[key] === 'boolean' ? value : parseFloat(value);
+  } else {
+    // Update global variables
+    switch (key) {
+      case 'delaunayMode':
+        delaunayMode = value;
+        break;
+      case 'showPerceptionRadius':
+        showPerceptionRadius = value;
+        break;
+      case 'speedColorMode':
+        speedColorMode = value;
+        break;
+      case 'showObjects':
+        showObjects = value;
+        break;
+    }
+  }
+
+  // Update the displayed value for sliders
+  const valueSpan = document.getElementById(`${key}Value`);
+  if (valueSpan) {
+    valueSpan.textContent = value;
+  }
+
+  // If numBoids changes, reinitialize the boids array
+  if (key === 'numBoids') {
+    boids = [];
+    for (let i = 0; i < CONFIG.numBoids; i++) {
+      boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height));
+    }
   }
 }
 

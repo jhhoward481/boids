@@ -4,12 +4,54 @@
   <meta charset="UTF-8">
   <title>Boids Flocking</title>
   <style>
-    body { margin: 0; overflow: hidden; background: black; }
-    canvas { display: block; }
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    #flockCanvas {
+      width: 800px;
+      height: 600px;
+      background: black;
+      border: 1px solid white;
+    }
+    #controls {
+      width: 250px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      overflow-y: auto; /* Add scrolling if the content overflows */
+      height: 600px; /* Match the canvas height */
+      margin-left: 10px;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+    }
+    #controls label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    #controls input[type="range"] {
+      width: 150px;
+    }
+    #fpsCounter {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 100;
+    }
+    #indicators span {
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
-  <div id="fpsCounter" style="position: absolute; top: 10px; left: 10px; color: white; font-family: Arial, sans-serif; font-size: 14px; z-index: 100;">
+  <div id="fpsCounter">
     <div id="fpsValue">FPS: 0</div>
     <div id="indicators">
       <span id="delaunayIndicator" style="display: none;">D</span>
@@ -19,6 +61,49 @@
     </div>
   </div>
   <canvas id="flockCanvas" width="800" height="600"></canvas>
+  <div id="controls">
+    <h3>Controls</h3>
+    <label>
+      Number of Boids:
+      <input type="range" id="numBoids" min="100" max="2000" step="100" value="1000" oninput="updateConfig('numBoids', this.value)">
+      <span id="numBoidsValue">1000</span>
+    </label>
+    <label>
+      Perception Radius:
+      <input type="range" id="perceptionRadius" min="10" max="100" step="5" value="50" oninput="updateConfig('perceptionRadius', this.value)">
+      <span id="perceptionRadiusValue">50</span>
+    </label>
+    <label>
+      Max Speed:
+      <input type="range" id="maxSpeed" min="1" max="20" step="1" value="7" oninput="updateConfig('maxSpeed', this.value)">
+      <span id="maxSpeedValue">7</span>
+    </label>
+    <label>
+      Max Force:
+      <input type="range" id="maxForce" min="0.01" max="0.2" step="0.01" value="0.05" oninput="updateConfig('maxForce', this.value)">
+      <span id="maxForceValue">0.05</span>
+    </label>
+    <label>
+      Bounce Edges:
+      <input type="checkbox" id="bounceEdges" checked onclick="updateConfig('bounceEdges', this.checked)">
+    </label>
+    <label>
+      Delaunay Mode:
+      <input type="checkbox" id="delaunayMode" onclick="updateConfig('delaunayMode', this.checked)">
+    </label>
+    <label>
+      Show Perception Radius:
+      <input type="checkbox" id="showPerceptionRadius" onclick="updateConfig('showPerceptionRadius', this.checked)">
+    </label>
+    <label>
+      Speed-Based Coloring:
+      <input type="checkbox" id="speedColorMode" checked onclick="updateConfig('speedColorMode', this.checked)">
+    </label>
+    <label>
+      Show Objects:
+      <input type="checkbox" id="showObjects" onclick="updateConfig('showObjects', this.checked)">
+    </label>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/delaunator@5.0.0/delaunator.min.js"></script>
   <script type="text/javascript" src="gl-matrix-min.js"></script>
   <script src="boids.js"></script>
