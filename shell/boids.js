@@ -20,6 +20,7 @@ let objects = [];
 let showPerceptionRadius = false;
 let speedColorMode = true; // Toggle for speed-based coloring
 let showObjects = false; // Toggle for displaying objects
+let gravityEnabled = false; // Toggle for gravity
 
 // Global variables for FPS calculation
 let lastFrameTime = performance.now();
@@ -39,6 +40,11 @@ class Boid {
   }
 
   update() {
+    if (gravityEnabled) {
+      const gravity = vec2.fromValues(0, 0.1); // Gravity force pointing downward
+      this.applyForce(gravity);
+    }
+
     vec2.add(this.velocity, this.velocity, this.acceleration); // velocity += acceleration
     limitVec2(this.velocity, CONFIG.maxSpeed); // Limit velocity
     vec2.add(this.position, this.position, this.velocity); // position += velocity
@@ -322,10 +328,8 @@ function renderPerceptionRadius() {
 
 function updateConfig(key, value) {
   if (typeof CONFIG[key] !== 'undefined') {
-    // Update CONFIG values
     CONFIG[key] = typeof CONFIG[key] === 'boolean' ? value : parseFloat(value);
   } else {
-    // Update global variables
     switch (key) {
       case 'delaunayMode':
         delaunayMode = value;
@@ -338,6 +342,9 @@ function updateConfig(key, value) {
         break;
       case 'showObjects':
         showObjects = value;
+        break;
+      case 'gravityEnabled':
+        gravityEnabled = value; // Handle gravity toggle
         break;
     }
   }
@@ -373,6 +380,7 @@ function render() {
     const perceptionRadiusIndicator = document.getElementById('perceptionRadiusIndicator');
     const speedColorIndicator = document.getElementById('speedColorIndicator');
     const objectIndicator = document.getElementById('objectIndicator');
+    const gravityIndicator = document.getElementById('gravityIndicator');
 
     if (fpsValue) {
       fpsValue.textContent = `FPS: ${fps}`;
@@ -392,6 +400,10 @@ function render() {
 
     if (objectIndicator) {
       objectIndicator.style.display = showObjects ? 'inline' : 'none';
+    }
+
+    if (gravityIndicator) {
+      gravityIndicator.style.display = gravityEnabled ? 'inline' : 'none';
     }
 
     lastFpsUpdateTime = now;
@@ -494,6 +506,12 @@ function render() {
     renderObjects();
   }
 
+  // Update HUD indicators
+  const gravityIndicator = document.getElementById('gravityIndicator');
+  if (gravityIndicator) {
+    gravityIndicator.style.display = gravityEnabled ? 'inline' : 'none';
+  }
+
   requestAnimationFrame(render);
 }
 
@@ -571,7 +589,24 @@ async function main() {
     if (event.key === 'o' || event.key === 'O') {
       showObjects = !showObjects; // Toggle object display
     }
+    if (event.key === 'g' || event.key === 'G') {
+      gravityEnabled = !gravityEnabled; // Toggle gravity
+      document.getElementById('gravityToggle').checked = gravityEnabled; // Sync checkbox state
+    }
   });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'g' || event.key === 'G') {
+      gravityEnabled = !gravityEnabled; // Toggle gravity
+    }
+  });
+
+  const gravityIndicator = document.getElementById('gravityIndicator');
+  if (gravityIndicator) {
+    gravityIndicator.style.display = gravityEnabled ? 'inline' : 'none';
+  }
+
+  document.getElementById('gravityToggle').checked = gravityEnabled;
 
   // Start rendering
   gl.clearColor(0, 0, 0, 1);
