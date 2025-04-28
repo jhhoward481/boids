@@ -1,9 +1,10 @@
 // Constants
 const CONFIG = {
-  numBoids: 100, // Number of boids
+  numBoids: 1000, // Number of boids
   perceptionRadius: 50, // Radius within which boids perceive others
   maxSpeed: 1, // Maximum speed of boids
   maxForce: 0.05, // Maximum steering force
+  bounceEdges: false, // Toggle for edge behavior: true = bounce, false = wrap around
 };
 
 // Global variables
@@ -15,6 +16,7 @@ let positionBuffer, colorBuffer;
 let aPosition, aColor;
 let program;
 let delaunayMode = false; // Toggle for Delaunay triangulation
+let objects = [];
 
 // Global variables for FPS calculation
 let lastFrameTime = performance.now();
@@ -92,10 +94,38 @@ class Boid {
   }
 
   edges() {
-    if (this.position[0] < 0) this.position[0] = canvas.width;
-    if (this.position[0] > canvas.width) this.position[0] = 0;
-    if (this.position[1] < 0) this.position[1] = canvas.height;
-    if (this.position[1] > canvas.height) this.position[1] = 0;
+    if (CONFIG.bounceEdges) {
+      // Bounce off the left or right edges
+      if (this.position[0] < 1e-6) {
+        this.position[0] = 0;
+        this.velocity[0] *= -1; // Reverse x-velocity
+      } else if (this.position[0] > canvas.width - 1e-6) {
+        this.position[0] = canvas.width;
+        this.velocity[0] *= -1; // Reverse x-velocity
+      }
+
+      // Bounce off the top or bottom edges
+      if (this.position[1] < 1e-6) {
+        this.position[1] = 0;
+        this.velocity[1] *= -1; // Reverse y-velocity
+      } else if (this.position[1] > canvas.height - 1e-6) {
+        this.position[1] = canvas.height;
+        this.velocity[1] *= -1; // Reverse y-velocity
+      }
+    } else {
+      // Wrap around edges
+      if (this.position[0] < 0) {
+        this.position[0] = canvas.width;
+      } else if (this.position[0] > canvas.width) {
+        this.position[0] = 0;
+      }
+
+      if (this.position[1] < 0) {
+        this.position[1] = canvas.height;
+      } else if (this.position[1] > canvas.height) {
+        this.position[1] = 0;
+      }
+    }
   }
 }
 
@@ -151,8 +181,17 @@ function limitVec2(vec, max) {
 }
 
 function renderDelaunay(positions) {
+  // Add four corner vertices to the positions array
+  const corners = [
+    -1, 1,  // Top-left corner in NDC
+    1, 1,   // Top-right corner in NDC
+    -1, -1, // Bottom-left corner in NDC
+    1, -1   // Bottom-right corner in NDC
+  ];
+  const extendedPositions = positions.concat(corners);
+
   // Use Delaunator to compute the triangulation
-  const delaunay = new Delaunator(positions);
+  const delaunay = new Delaunator(extendedPositions);
   const triangles = delaunay.triangles;
 
   // Prepare data for rendering
@@ -164,9 +203,9 @@ function renderDelaunay(positions) {
     const p2Index = triangles[i + 1];
     const p3Index = triangles[i + 2];
 
-    const p1 = positions.slice(p1Index * 2, p1Index * 2 + 2);
-    const p2 = positions.slice(p2Index * 2, p2Index * 2 + 2);
-    const p3 = positions.slice(p3Index * 2, p3Index * 2 + 2);
+    const p1 = extendedPositions.slice(p1Index * 2, p1Index * 2 + 2);
+    const p2 = extendedPositions.slice(p2Index * 2, p2Index * 2 + 2);
+    const p3 = extendedPositions.slice(p3Index * 2, p3Index * 2 + 2);
 
     // Add triangle vertices
     triangleVertices.push(...p1, ...p2, ...p3);
@@ -176,8 +215,13 @@ function renderDelaunay(positions) {
 
     // Check if the triangle already has an assigned color
     if (!delaunayColorsMap.has(triangleKey)) {
-      // Assign a new muted, transparent color
-      const color = [Math.random() * 0.5, Math.random() * 0.5, Math.random() * 0.5, 0.5];
+      // Generate a pale, transparent color
+      const color = [
+        Math.random() * 0.6, // Red component (range: 0.7 to 1.0)
+        Math.random() * 0.6, // Green component (range: 0.7 to 1.0)
+        Math.random() * 0.6, // Blue component (range: 0.7 to 1.0)
+        0.5, // Alpha (transparency, range: 0.0 to 1.0, lower = more transparent)
+      ];
       delaunayColorsMap.set(triangleKey, color);
     }
 
@@ -200,6 +244,35 @@ function renderDelaunay(positions) {
 
   // Draw triangles
   gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
+}
+
+function renderObjects() {
+  const objectVertices = [];
+  const objectColors = [];
+
+  for (const object of objects) {
+    for (const triangle of object.triangles) {
+      for (const vertex of triangle) {
+        objectVertices.push(...vertex);
+        objectColors.push(...object.color); // Use the object's color
+      }
+    }
+  }
+
+  // Pass object vertices to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(objectVertices), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+
+  // Pass object colors to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(objectColors), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aColor);
+
+  // Draw triangles
+  gl.drawArrays(gl.TRIANGLES, 0, objectVertices.length / 2);
 }
 
 // Core Functions
@@ -227,40 +300,80 @@ function render() {
 
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // Prepare position data
+  // Prepare position data for Delaunay triangulation
   const positions = [];
+  const triangleVertices = [];
+  const triangleColors = [];
+
   for (let boid of boids) {
     boid.edges();
     boid.flock(boids);
     boid.update();
-    const [ndcX, ndcY] = toNDC(boid.position[0], boid.position[1]);
-    positions.push(ndcX, ndcY);
+
+    // Add boid position to positions array for Delaunay triangulation
+    positions.push(boid.position[0], boid.position[1]);
+
+    // Calculate triangle vertices for the boid
+    const direction = vec2.clone(boid.velocity);
+    vec2.normalize(direction, direction);
+
+    const tip = vec2.clone(boid.position); // Tip of the triangle
+    const baseCenter = vec2.clone(boid.position);
+    vec2.scaleAndAdd(tip, tip, direction, 10); // Extend tip in the direction of movement
+    vec2.scaleAndAdd(baseCenter, baseCenter, direction, -5); // Move base center backward
+
+    const perpendicular = vec2.fromValues(-direction[1], direction[0]); // Perpendicular vector
+    const baseLeft = vec2.clone(baseCenter);
+    const baseRight = vec2.clone(baseCenter);
+    vec2.scaleAndAdd(baseLeft, baseLeft, perpendicular, -5); // Left base vertex
+    vec2.scaleAndAdd(baseRight, baseRight, perpendicular, 5); // Right base vertex
+
+    // Convert to NDC
+    const [tipX, tipY] = toNDC(tip[0], tip[1]);
+    const [baseLeftX, baseLeftY] = toNDC(baseLeft[0], baseLeft[1]);
+    const [baseRightX, baseRightY] = toNDC(baseRight[0], baseRight[1]);
+
+    // Add triangle vertices
+    triangleVertices.push(tipX, tipY, baseLeftX, baseLeftY, baseRightX, baseRightY);
+
+    // Add color for the triangle
+    triangleColors.push(...currentColor, ...currentColor, ...currentColor);
   }
 
   if (delaunayMode) {
-    renderDelaunay(positions);
+    // Render Delaunay triangulation
+    const ndcPositions = positions.map((value, index) =>
+      index % 2 === 0 ? (value / canvas.width) * 2 - 1 : (value / canvas.height) * -2 + 1
+    );
+    renderDelaunay(ndcPositions);
   } else {
-    // Pass positions to WebGL
+    // Render boids as triangles
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
     gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aPosition);
 
-    // Pass colors to WebGL
-    const colors = new Array(boids.length * 4).fill(0).map((_, i) => currentColor[i % 4]);
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleColors), gl.STATIC_DRAW);
     gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aColor);
 
-    // Draw points
-    gl.drawArrays(gl.POINTS, 0, boids.length);
+    gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
   }
+
+  // Render objects
+  renderObjects();
 
   requestAnimationFrame(render);
 }
 
-function main() {
+async function loadObjects() {
+  const response = await fetch('objs.json'); // Load the JSON file
+  const data = await response.json();
+  objects = data.objects;
+}
+
+async function main() {
   // WebGL setup
   canvas = document.getElementById('flockCanvas');
   gl = canvas.getContext('webgl'); // Initialize the global WebGL context
@@ -310,6 +423,9 @@ function main() {
   for (let i = 0; i < CONFIG.numBoids; i++) {
     boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height));
   }
+
+  // Load objects from JSON
+  await loadObjects();
 
   // Add event listener for the D key
   document.addEventListener('keydown', (event) => {
