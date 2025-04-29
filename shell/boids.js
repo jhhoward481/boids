@@ -710,7 +710,7 @@ function checkLineHits() {
     vec2.normalize(direction, direction);
 
     const lineEnd = vec2.clone(boid.position);
-    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius );
+    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius);
 
     // Convert the endpoint from NDC to screen coordinates
     const [endX, endY] = toNDC(lineEnd[0], lineEnd[1]);
@@ -726,10 +726,11 @@ function checkLineHits() {
         if (isPointInTriangle([screenEndX, screenEndY], v1, v2, v3)) {
           console.log("hit");
 
-          // Apply a deflection force to the left
+          // Apply a deflection force to the left or right
           const deflection = vec2.create();
           const randomFactor = Math.random() * CONFIG.scared; // Random deflection strength
-          vec2.set(deflection, -direction[1], direction[0]); // Perpendicular to the direction
+          const directionFactor = Math.random() < 0.5 ? -1 : 1; // Randomly choose left (-1) or right (1)
+          vec2.set(deflection, directionFactor * direction[1], -directionFactor * direction[0]); // Perpendicular to the direction
           vec2.scale(deflection, deflection, randomFactor * CONFIG.maxForce);
 
           boid.applyForce(deflection); // Apply the deflection force
