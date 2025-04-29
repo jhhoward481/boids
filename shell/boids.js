@@ -1,10 +1,11 @@
 // Constants
 const CONFIG = {
-  numBoids: 1, // Number of boids
+  numBoids: 1000, // Number of boids
   perceptionRadius: 50, // Radius within which boids perceive others
   maxSpeed: 7, // Maximum speed of boids
   maxForce: 0.05, // Maximum steering force
   bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
+  scared: 100 // Scared parameter (0 = no deflection, 100 = maximum deflection)
 };
 
 // Global variables
@@ -17,7 +18,7 @@ let aPosition, aColor;
 let program;
 let delaunayMode = false; // Toggle for Delaunay triangulation
 let objects = [];
-let showPerceptionRadius = true;
+let showPerceptionRadius = false;
 let speedColorMode = true; // Toggle for speed-based coloring
 let showObjects = true; // Toggle for displaying objects
 let gravityEnabled = false; // Toggle for gravity
@@ -487,7 +488,7 @@ function render() {
   fps = Math.round(1000 / delta); // Calculate FPS
   lastFrameTime = now;
 
-  // Update FPS counter and indicators only 10 times per second
+  // Update FPS counter and HUD
   if (now - lastFpsUpdateTime >= 100) {
     const fpsValue = document.getElementById('fpsValue');
     if (fpsValue) {
@@ -681,13 +682,6 @@ async function main() {
     }
   });
 
-  const gravityIndicator = document.getElementById('gravityIndicator');
-  if (gravityIndicator) {
-    gravityIndicator.style.display = gravityEnabled ? 'inline' : 'none';
-  }
-
-  document.getElementById('gravityToggle').checked = gravityEnabled;
-
   // Start rendering
   gl.clearColor(0, 0, 0, 1);
   render();
@@ -716,7 +710,7 @@ function checkLineHits() {
     vec2.normalize(direction, direction);
 
     const lineEnd = vec2.clone(boid.position);
-    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius);
+    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius );
 
     // Convert the endpoint from NDC to screen coordinates
     const [endX, endY] = toNDC(lineEnd[0], lineEnd[1]);
@@ -731,6 +725,14 @@ function checkLineHits() {
 
         if (isPointInTriangle([screenEndX, screenEndY], v1, v2, v3)) {
           console.log("hit");
+
+          // Apply a deflection force to the left
+          const deflection = vec2.create();
+          const randomFactor = Math.random() * CONFIG.scared; // Random deflection strength
+          vec2.set(deflection, -direction[1], direction[0]); // Perpendicular to the direction
+          vec2.scale(deflection, deflection, randomFactor * CONFIG.maxForce);
+
+          boid.applyForce(deflection); // Apply the deflection force
         }
       }
     }
