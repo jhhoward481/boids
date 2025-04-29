@@ -17,7 +17,7 @@ let aPosition, aColor;
 let program;
 let delaunayMode = false; // Toggle for Delaunay triangulation
 let objects = [];
-let showPerceptionRadius = false;
+let showPerceptionRadius = true;
 let speedColorMode = true; // Toggle for speed-based coloring
 let showObjects = true; // Toggle for displaying objects
 let gravityEnabled = false; // Toggle for gravity
@@ -167,6 +167,13 @@ function toNDC(x, y) {
   return [
     (x / canvas.width) * 2 - 1, // Convert x to range [-1, 1]
     (y / canvas.height) * -2 + 1 // Convert y to range [-1, 1] (invert y-axis)
+  ];
+}
+
+function toScreenCoordinates(ndcX, ndcY) {
+  return [
+    ((ndcX + 1) / 2) * canvas.width,  // Convert x from [-1, 1] to [0, canvas.width]
+    ((1 - ndcY) / 2) * canvas.height // Convert y from [-1, 1] to [0, canvas.height]
   ];
 }
 
@@ -323,6 +330,26 @@ function renderPerceptionRadius() {
 
     // Add the line color (green)
     lineColors.push(0, 1, 0, 1, 0, 1, 0, 1); // Green
+
+    // Check if the endpoint is inside any triangle
+    for (let object of objects) {
+      for (let triangle of object.triangles) {
+        // Convert triangle vertices from NDC to screen coordinates
+        const v1 = toScreenCoordinates(triangle[0][0], triangle[0][1]);
+        const v2 = toScreenCoordinates(triangle[1][0], triangle[1][1]);
+        const v3 = toScreenCoordinates(triangle[2][0], triangle[2][1]);
+
+        // Convert the endpoint from NDC to screen coordinates
+        const [screenEndX, screenEndY] = toScreenCoordinates(endX, endY);
+
+        // console.log("Endpoint in screen coordinates:", screenEndX, screenEndY);
+        // console.log("Triangle vertices in screen coordinates:", v1, v2, v3);
+
+        if (isPointInTriangle([screenEndX, screenEndY], v1, v2, v3)) {
+          console.log("hit");
+        }
+      }
+    }
   }
 
   // Pass circle vertices to WebGL
@@ -463,113 +490,90 @@ function render() {
   // Update FPS counter and indicators only 10 times per second
   if (now - lastFpsUpdateTime >= 100) {
     const fpsValue = document.getElementById('fpsValue');
-    const delaunayIndicator = document.getElementById('delaunayIndicator');
-    const perceptionRadiusIndicator = document.getElementById('perceptionRadiusIndicator');
-    const speedColorIndicator = document.getElementById('speedColorIndicator');
-    const objectIndicator = document.getElementById('objectIndicator');
-    const gravityIndicator = document.getElementById('gravityIndicator');
-
     if (fpsValue) {
       fpsValue.textContent = `FPS: ${fps}`;
     }
-
-    if (delaunayIndicator) {
-      delaunayIndicator.style.display = delaunayMode ? 'inline' : 'none';
-    }
-
-    if (perceptionRadiusIndicator) {
-      perceptionRadiusIndicator.style.display = showPerceptionRadius ? 'inline' : 'none';
-    }
-
-    if (speedColorIndicator) {
-      speedColorIndicator.style.display = speedColorMode ? 'inline' : 'none';
-    }
-
-    if (objectIndicator) {
-      objectIndicator.style.display = showObjects ? 'inline' : 'none';
-    }
-
-    if (gravityIndicator) {
-      gravityIndicator.style.display = gravityEnabled ? 'inline' : 'none';
-    }
-
     lastFpsUpdateTime = now;
   }
 
-  // Prepare position and color data for boids
-  const triangleVertices = [];
-  const triangleColors = [];
-  const positions = []; // For Delaunay triangulation
-
+  // Update boids
   for (let boid of boids) {
     boid.edges();
     boid.flock(boids);
     boid.update();
-
-    // Add boid position to positions array for Delaunay triangulation
-    positions.push(boid.position[0], boid.position[1]);
-
-    // Calculate triangle vertices for the boid
-    const direction = vec2.clone(boid.velocity);
-    vec2.normalize(direction, direction);
-
-    const tip = vec2.clone(boid.position); // Tip of the triangle
-    const baseCenter = vec2.clone(boid.position);
-    vec2.scaleAndAdd(tip, tip, direction, 10); // Extend tip in the direction of movement
-    vec2.scaleAndAdd(baseCenter, baseCenter, direction, -5); // Move base center backward
-
-    const perpendicular = vec2.fromValues(-direction[1], direction[0]); // Perpendicular vector
-    const baseLeft = vec2.clone(baseCenter);
-    const baseRight = vec2.clone(baseCenter);
-    vec2.scaleAndAdd(baseLeft, baseLeft, perpendicular, -5); // Left base vertex
-    vec2.scaleAndAdd(baseRight, baseRight, perpendicular, 5); // Right base vertex
-
-    // Convert to NDC
-    const [tipX, tipY] = toNDC(tip[0], tip[1]);
-    const [baseLeftX, baseLeftY] = toNDC(baseLeft[0], baseLeft[1]);
-    const [baseRightX, baseRightY] = toNDC(baseRight[0], baseRight[1]);
-
-    // Add triangle vertices
-    triangleVertices.push(tipX, tipY, baseLeftX, baseLeftY, baseRightX, baseRightY);
-
-    // Calculate color based on speed
-    let color = currentColor; // Default color
-    if (speedColorMode) {
-      const speed = vec2.length(boid.velocity);
-      const speedRatio = speed / CONFIG.maxSpeed; // Normalize speed to [0, 1]
-
-      // Interpolate between colors based on speed
-      if (speedRatio < 0.5) {
-        // Slow: Dark purple/blue
-        color = [
-          0.2 + speedRatio * 0.6, // Red
-          0.0,                   // Green
-          0.5 + speedRatio * 0.5, // Blue
-          1.0                    // Alpha
-        ];
-      } else {
-        // Fast: Pink
-        color = [
-          0.5 + (speedRatio - 0.5) * 0.5, // Red
-          0.0,                            // Green
-          0.5 - (speedRatio - 0.5) * 0.5, // Blue
-          1.0                             // Alpha
-        ];
-      }
-    }
-
-    // Add color for the triangle
-    triangleColors.push(...color, ...color, ...color);
   }
 
+  // Perform hit detection if objects are shown
+  if (showObjects) {
+    checkLineHits();
+  }
+
+  // Render perception radius if enabled
+  if (showPerceptionRadius) {
+    renderPerceptionRadius();
+  }
+
+  // Render Delaunay triangulation if enabled
   if (delaunayMode) {
-    // Render Delaunay triangulation
-    const ndcPositions = positions.map((value, index) =>
-      index % 2 === 0 ? (value / canvas.width) * 2 - 1 : (value / canvas.height) * -2 + 1
-    );
-    renderDelaunay(ndcPositions);
+    const positions = boids.map(boid => toNDC(boid.position[0], boid.position[1]));
+    renderDelaunay(positions.flat());
   } else {
-    // Render boids as triangles
+    // Render boids only if Delaunay mode is off
+    const triangleVertices = [];
+    const triangleColors = [];
+    for (let boid of boids) {
+      const direction = vec2.clone(boid.velocity);
+      vec2.normalize(direction, direction);
+
+      const tip = vec2.clone(boid.position); // Tip of the triangle
+      const baseCenter = vec2.clone(boid.position);
+      vec2.scaleAndAdd(tip, tip, direction, 10); // Extend tip in the direction of movement
+      vec2.scaleAndAdd(baseCenter, baseCenter, direction, -5); // Move base center backward
+
+      const perpendicular = vec2.fromValues(-direction[1], direction[0]); // Perpendicular vector
+      const baseLeft = vec2.clone(baseCenter);
+      const baseRight = vec2.clone(baseCenter);
+      vec2.scaleAndAdd(baseLeft, baseLeft, perpendicular, -5); // Left base vertex
+      vec2.scaleAndAdd(baseRight, baseRight, perpendicular, 5); // Right base vertex
+
+      // Convert to NDC
+      const [tipX, tipY] = toNDC(tip[0], tip[1]);
+      const [baseLeftX, baseLeftY] = toNDC(baseLeft[0], baseLeft[1]);
+      const [baseRightX, baseRightY] = toNDC(baseRight[0], baseRight[1]);
+
+      // Add triangle vertices
+      triangleVertices.push(tipX, tipY, baseLeftX, baseLeftY, baseRightX, baseRightY);
+
+      // Calculate speed-based color
+      let color = currentColor; // Default color
+      if (speedColorMode) {
+        const speed = vec2.length(boid.velocity);
+        const speedRatio = speed / CONFIG.maxSpeed; // Normalize speed to [0, 1]
+
+        // Interpolate between colors based on speed
+        if (speedRatio < 0.5) {
+          // Slow: Dark purple/blue
+          color = [
+            0.2 + speedRatio * 0.6, // Red
+            0.0,                   // Green
+            0.5 + speedRatio * 0.5, // Blue
+            1.0                    // Alpha
+          ];
+        } else {
+          // Fast: Pink
+          color = [
+            0.5 + (speedRatio - 0.5) * 0.5, // Red
+            0.0,                            // Green
+            0.5 - (speedRatio - 0.5) * 0.5, // Blue
+            1.0                             // Alpha
+          ];
+        }
+      }
+
+      // Add color
+      triangleColors.push(...color, ...color, ...color);
+    }
+
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
     gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
@@ -583,20 +587,9 @@ function render() {
     gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
   }
 
-  // Render perception radius circles if enabled
-  if (showPerceptionRadius) {
-    renderPerceptionRadius();
-  }
-
   // Render objects if enabled
   if (showObjects) {
     renderObjects();
-  }
-
-  // Update HUD indicators
-  const gravityIndicator = document.getElementById('gravityIndicator');
-  if (gravityIndicator) {
-    gravityIndicator.style.display = gravityEnabled ? 'inline' : 'none';
   }
 
   requestAnimationFrame(render);
@@ -702,3 +695,44 @@ async function main() {
 
 // Run the main function
 main();
+
+function isPointInTriangle(point, v1, v2, v3) {
+  const [px, py] = point;
+  const [x1, y1] = v1;
+  const [x2, y2] = v2;
+  const [x3, y3] = v3;
+
+  const area = 0.5 * (-y2 * x3 + y1 * (-x2 + x3) + x1 * (y2 - y3) + x2 * y3);
+  const s = 1 / (2 * area) * (y1 * x3 - x1 * y3 + (y3 - y1) * px + (x1 - x3) * py);
+  const t = 1 / (2 * area) * (x1 * y2 - y1 * x2 + (y1 - y2) * px + (x2 - x1) * py);
+
+  return s > 0 && t > 0 && 1 - s - t > 0;
+}
+
+function checkLineHits() {
+  for (let boid of boids) {
+    // Line of sight
+    const direction = vec2.clone(boid.velocity);
+    vec2.normalize(direction, direction);
+
+    const lineEnd = vec2.clone(boid.position);
+    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius);
+
+    // Convert the endpoint from NDC to screen coordinates
+    const [endX, endY] = toNDC(lineEnd[0], lineEnd[1]);
+    const [screenEndX, screenEndY] = toScreenCoordinates(endX, endY);
+
+    // Check if the endpoint is inside any triangle
+    for (let object of objects) {
+      for (let triangle of object.triangles) {
+        const v1 = toScreenCoordinates(triangle[0][0], triangle[0][1]);
+        const v2 = toScreenCoordinates(triangle[1][0], triangle[1][1]);
+        const v3 = toScreenCoordinates(triangle[2][0], triangle[2][1]);
+
+        if (isPointInTriangle([screenEndX, screenEndY], v1, v2, v3)) {
+          console.log("hit");
+        }
+      }
+    }
+  }
+}
