@@ -1,6 +1,6 @@
 // Constants
 const CONFIG = {
-  numBoids: 1000, // Number of boids
+  numBoids: 1, // Number of boids
   perceptionRadius: 50, // Radius within which boids perceive others
   maxSpeed: 7, // Maximum speed of boids
   maxForce: 0.05, // Maximum steering force
@@ -19,7 +19,7 @@ let delaunayMode = false; // Toggle for Delaunay triangulation
 let objects = [];
 let showPerceptionRadius = false;
 let speedColorMode = true; // Toggle for speed-based coloring
-let showObjects = false; // Toggle for displaying objects
+let showObjects = true; // Toggle for displaying objects
 let gravityEnabled = false; // Toggle for gravity
 
 // Global variables for FPS calculation
@@ -344,7 +344,7 @@ function updateConfig(key, value) {
         showObjects = value;
         break;
       case 'gravityEnabled':
-        gravityEnabled = value; // Handle gravity toggle
+        gravityEnabled = value;
         break;
     }
   }
@@ -360,6 +360,57 @@ function updateConfig(key, value) {
     boids = [];
     for (let i = 0; i < CONFIG.numBoids; i++) {
       boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height));
+    }
+  }
+}
+
+function applyPreset(preset) {
+  const presets = {
+    calm: {
+      numBoids: 100,
+      perceptionRadius: 50,
+      maxSpeed: 3,
+      maxForce: 0.2,
+      bounceEdges: false,
+      delaunayMode: false,
+      showPerceptionRadius: false,
+      speedColorMode: true,
+      showObjects: false,
+      gravityEnabled: false,
+    },
+    chaotic: {
+      numBoids: 1000,
+      perceptionRadius: 50,
+      maxSpeed: 7,
+      maxForce: 0.05,
+      bounceEdges: true,
+      delaunayMode: false,
+      showPerceptionRadius: false,
+      speedColorMode: true,
+      showObjects: false,
+      gravityEnabled: false,
+    },
+  };
+
+  const config = presets[preset];
+  if (!config) return;
+
+  // Apply each preset value
+  for (const [key, value] of Object.entries(config)) {
+    updateConfig(key, value);
+
+    // Update sliders and checkboxes in the UI
+    const input = document.getElementById(key);
+    if (input) {
+      if (input.type === 'checkbox') {
+        input.checked = value;
+      } else {
+        input.value = value;
+        const valueSpan = document.getElementById(`${key}Value`);
+        if (valueSpan) {
+          valueSpan.textContent = value;
+        }
+      }
     }
   }
 }

@@ -9,3 +9,8 @@ some objects that speed up or slow down boids
 gradients across delaunay
 gradients across voronoi
 voronoi
+
+light cycles
+color changing prism thing
+presets √
+
