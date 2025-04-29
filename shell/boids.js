@@ -5,7 +5,8 @@ const CONFIG = {
   maxSpeed: 7, // Maximum speed of boids
   maxForce: 0.05, // Maximum steering force
   bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
-  scared: 100 // Scared parameter (0 = no deflection, 100 = maximum deflection)
+  scared: 100, // Scared parameter (0 = no deflection, 100 = maximum deflection)
+  foresight: 75 // Length of the line representing what boids can see
 };
 
 // Global variables
@@ -320,7 +321,7 @@ function renderPerceptionRadius() {
     vec2.normalize(direction, direction);
 
     const lineEnd = vec2.clone(boid.position);
-    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius);
+    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.foresight); // Use foresight for line length
 
     // Convert to NDC
     const [startX, startY] = toNDC(boid.position[0], boid.position[1]);
@@ -710,7 +711,7 @@ function checkLineHits() {
     vec2.normalize(direction, direction);
 
     const lineEnd = vec2.clone(boid.position);
-    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius);
+    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.foresight); // Use foresight for line length
 
     // Convert the endpoint from NDC to screen coordinates
     const [endX, endY] = toNDC(lineEnd[0], lineEnd[1]);

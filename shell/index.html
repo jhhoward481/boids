@@ -105,6 +105,11 @@
       <input type="checkbox" id="showObjects" onclick="updateConfig('showObjects', this.checked)">
     </label>
     <label>
+      Scared:
+      <input type="range" id="scared" min="0" max="100" step="1" value="100" oninput="updateConfig('scared', this.value)">
+      <span id="scaredValue">100</span>
+    </label>
+    <label>
       Gravity:
       <input type="checkbox" id="gravityToggle" onclick="updateConfig('gravityEnabled', this.checked)">
     </label>
