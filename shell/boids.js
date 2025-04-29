@@ -287,6 +287,8 @@ function renderObjects() {
 function renderPerceptionRadius() {
   const circleVertices = [];
   const circleColors = [];
+  const lineVertices = [];
+  const lineColors = [];
   const numSegments = 50; // Number of segments to approximate the circle
 
   for (let boid of boids) {
@@ -304,6 +306,23 @@ function renderPerceptionRadius() {
       // Use a very dark gray color for the circle
       circleColors.push(0.3, 0.3, 0.3, 0.5); // Very dark gray with low transparency
     }
+
+    // Line of sight
+    const direction = vec2.clone(boid.velocity);
+    vec2.normalize(direction, direction);
+
+    const lineEnd = vec2.clone(boid.position);
+    vec2.scaleAndAdd(lineEnd, lineEnd, direction, CONFIG.perceptionRadius);
+
+    // Convert to NDC
+    const [startX, startY] = toNDC(boid.position[0], boid.position[1]);
+    const [endX, endY] = toNDC(lineEnd[0], lineEnd[1]);
+
+    // Add the line vertices
+    lineVertices.push(startX, startY, endX, endY);
+
+    // Add the line color (green)
+    lineColors.push(0, 1, 0, 1, 0, 1, 0, 1); // Green
   }
 
   // Pass circle vertices to WebGL
@@ -323,6 +342,23 @@ function renderPerceptionRadius() {
   for (let i = 0; i < boids.length; i++) {
     gl.drawArrays(gl.LINE_LOOP, offset, numSegments + 1);
     offset += numSegments + 1;
+  }
+
+  // Pass line vertices to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineVertices), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+
+  // Pass line colors to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineColors), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aColor);
+
+  // Draw the lines
+  for (let i = 0; i < boids.length; i++) {
+    gl.drawArrays(gl.LINES, i * 2, 2);
   }
 }
 
