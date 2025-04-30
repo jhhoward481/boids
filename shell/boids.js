@@ -388,7 +388,11 @@ function renderPerceptionRadius() {
 
 function updateConfig(key, value) {
   if (typeof CONFIG[key] !== 'undefined') {
-    CONFIG[key] = typeof CONFIG[key] === 'boolean' ? value : parseFloat(value);
+    if (key === 'gradientTopColor' || key === 'gradientBottomColor') {
+      CONFIG[key] = value; // Update the color directly as a hex string
+    } else {
+      CONFIG[key] = typeof CONFIG[key] === 'boolean' ? value : parseFloat(value);
+    }
   } else {
     switch (key) {
       case 'delaunayMode':

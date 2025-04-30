@@ -66,7 +66,7 @@
     <h3>Controls</h3>
     <label>
       Number of Boids:
-      <input type="range" id="numBoids" min="100" max="2000" step="100" value="1000" oninput="updateConfig('numBoids', this.value)">
+      <input type="range" id="numBoids" min="15" max="2000" step="100" value="1000" oninput="updateConfig('numBoids', this.value)">
       <span id="numBoidsValue">1000</span>
     </label>
     <label>
@@ -112,6 +112,14 @@
     <label>
       Gravity:
       <input type="checkbox" id="gravityToggle" onclick="updateConfig('gravityEnabled', this.checked)">
+    </label>
+    <label>
+      Gradient Top Color:
+      <input type="color" id="gradientBottomColor" value="#FFCF56" onchange="updateConfig('gradientBottomColor', this.value)">
+    </label>
+    <label>
+      Gradient Bottom Color:
+      <input type="color" id="gradientTopColor" value="#3AB795" onchange="updateConfig('gradientTopColor', this.value)">
     </label>
     <hr>
     <h4>Presets</h4>
