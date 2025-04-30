@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Boids Flocking</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    #flockCanvas {
+      width: 800px;
+      height: 600px;
+      background: black;
+      border: 1px solid white;
+    }
+    #controls {
+      width: 250px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      overflow-y: auto; /* Add scrolling if the content overflows */
+      height: 600px; /* Match the canvas height */
+      margin-left: 10px;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+    }
+    #presets {
+      width: 200px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      overflow-y: auto;
+      height: 600px;
+      margin-left: 10px;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+    }
+    #controls label,
+    #presets button {
+      display: block;
+      margin-bottom: 10px;
+    }
+    #controls input[type="range"] {
+      width: 150px;
+    }
+    #fpsCounter {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      z-index: 100;
+    }
+    #indicators span {
+      margin-right: 5px;
+    }
+    #gradientControls {
+      margin-top: 20px;
+    }
+
+    .gradient-key {
+      margin-bottom: 10px;
+    }
+
+    .gradient-key label {
+      margin-right: 10px;
+    }
+
+    .gradient-key button {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="fpsCounter">
+    <div id="fpsValue">FPS: 0</div>
+    <div id="indicators">
+      <span id="delaunayIndicator" style="display: none;">D</span>
+      <span id="perceptionRadiusIndicator" style="display: none;">C</span>
+      <span id="speedColorIndicator" style="display: none;">S</span>
+      <span id="objectIndicator" style="display: none;">O</span>
+      <span id="gravityIndicator" style="display: none;">G</span> <!-- Added G -->
+    </div>
+  </div>
+  <canvas id="flockCanvas" width="800" height="600"></canvas>
+  <div id="controls">
+    <h3>Controls</h3>
+    <label>
+      Number of Boids:
+      <input type="range" id="numBoids" min="15" max="2015" step="100" value="1000" oninput="updateConfig('numBoids', this.value)">
+      <span id="numBoidsValue">1000</span>
+    </label>
+    <label>
+      Perception Radius:
+      <input type="range" id="perceptionRadius" min="10" max="100" step="5" value="50" oninput="updateConfig('perceptionRadius', this.value)">
+      <span id="perceptionRadiusValue">50</span>
+    </label>
+    <label>
+      Max Speed:
+      <input type="range" id="maxSpeed" min="1" max="20" step="1" value="7" oninput="updateConfig('maxSpeed', this.value)">
+      <span id="maxSpeedValue">7</span>
+    </label>
+    <label>
+      Max Force:
+      <input type="range" id="maxForce" min="0.01" max="0.2" step="0.01" value="0.05" oninput="updateConfig('maxForce', this.value)">
+      <span id="maxForceValue">0.05</span>
+    </label>
+    <label>
+      Bounce Edges:
+      <input type="checkbox" id="bounceEdges" checked onclick="updateConfig('bounceEdges', this.checked)">
+    </label>
+    <label>
+      Delaunay Mode:
+      <input type="checkbox" id="delaunayMode" onclick="updateConfig('delaunayMode', this.checked)">
+    </label>
+    <label>
+      Show Perception Radius:
+      <input type="checkbox" id="showPerceptionRadius" onclick="updateConfig('showPerceptionRadius', this.checked)">
+    </label>
+    <label>
+      Speed-Based Coloring:
+      <input type="checkbox" id="speedColorMode" checked onclick="updateConfig('speedColorMode', this.checked)">
+    </label>
+    <label>
+      Show Objects:
+      <input type="checkbox" id="showObjects" onclick="updateConfig('showObjects', this.checked)">
+    </label>
+    <label>
+      Scared:
+      <input type="range" id="scared" min="0" max="100" step="1" value="100" oninput="updateConfig('scared', this.value)">
+      <span id="scaredValue">100</span>
+    </label>
+    <label>
+      Gravity:
+      <input type="checkbox" id="gravityToggle" onclick="updateConfig('gravityEnabled', this.checked)">
+    </label>
+    <label>
+      Show Trails:
+      <input type="checkbox" id="showTrails" onclick="updateConfig('showTrails', this.checked)">
+    </label>
+    <label>
+      Trail Length:
+      <input type="range" id="trailLength" min="10" max="500" step="10" value="50" oninput="updateConfig('trailLength', this.value)">
+      <span id="trailLengthValue">50</span>
+    </label>
+    <div id="gradientControls">
+      <h3>Gradient Keys</h3>
+      <div id="gradientKeyList"></div>
+      <button onclick="addGradientKey()">Add Gradient Key</button>
+    </div>
+  </div>
+
+  <div id="presets">
+    <h3>Presets</h3>
+    <button onclick="applyPreset('calm')">Calm</button>
+    <button onclick="applyPreset('chaotic')">Chaotic</button>
+    <button onclick="applyPreset('space')">Space</button>
+    <button onclick="applyPreset('landscape')">Landscape</button>
+    <button onclick="applyPreset('spooky')">Spooky</button>
+    <button onclick="applyPreset('serene')">Serene</button>
+    <button onclick="applyPreset('indie')">Indie</button>
+    <button onclick="applyPreset('dune')">Dune</button>
+    <button onclick="applyPreset('hell')">Hell</button>
+    <button onclick="applyPreset('lemonade')">Lemonade</button>
+    <button onclick="applyPreset('max')">MAX</button>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/delaunator@5.0.0/delaunator.min.js"></script>
+  <script type="text/javascript" src="gl-matrix-min.js"></script>
+  <script src="boids.js"></script>
+</body>
+</html>
