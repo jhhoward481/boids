@@ -15,8 +15,8 @@ color changing prism thing
 presets √
 
 Rubric:
-- 50: boids/user controls
-- 10: obstacles
-- 10: simple color-changing (based on speed, etc)
+- 50: boids/user controls √
+- 10: obstacles √
+- 10: simple color-changing (based on speed, etc) √
 - 15: advanced color-changing (gradients, other cool effects)
 - 10: procedural gen: clouds, fluids, flocks?

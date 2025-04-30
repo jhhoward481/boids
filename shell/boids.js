@@ -6,7 +6,7 @@ const CONFIG = {
   maxForce: 0.05, // Maximum steering force
   bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
   scared: 100, // Scared parameter (0 = no deflection, 100 = maximum deflection)
-  foresight: 75 // Length of the line representing what boids can see
+  foresight: 120 // Length of the line representing what boids can see
 };
 
 // Global variables
