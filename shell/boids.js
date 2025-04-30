@@ -452,6 +452,7 @@ function updateConfig(key, value) {
   // If numBoids changes, reinitialize the boids array
   if (key === 'numBoids') {
     boids = [];
+    boidTrails = []; // Reset trails
     for (let i = 0; i < CONFIG.numBoids; i++) {
       boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height, i));
       boidTrails.push([]); // Initialize an empty trail for each boid
