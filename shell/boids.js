@@ -6,7 +6,9 @@ const CONFIG = {
   maxForce: 0.05, // Maximum steering force
   bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
   scared: 100, // Scared parameter (0 = no deflection, 100 = maximum deflection)
-  foresight: 120 // Length of the line representing what boids can see
+  foresight: 120, // Length of the line representing what boids can see
+  gradientTopColor: "#3AB795", // Yellow (hex) for the top of the screen
+  gradientBottomColor: "#FFCF56" // Green (hex) for the bottom of the screen
 };
 
 // Global variables
@@ -142,27 +144,17 @@ class Boid {
 
 // Helper Functions
 function hexToRGBA(hex) {
-  try {
-    const ctx = document.createElement('canvas').getContext('2d');
-    ctx.fillStyle = hex; // Attempt to set the color
-    const rgbaString = ctx.fillStyle; // Get the computed color value
+  // Remove the hash (#) if it exists
+  hex = hex.replace(/^#/, '');
 
-    // Check if the color is valid
-    if (!rgbaString || rgbaString === 'rgba(0, 0, 0, 0)') {
-      throw new Error(`Invalid color: ${hex}`);
-    }
+  // Parse the hex string into RGB components
+  const bigint = parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
 
-    const rgba = rgbaString.match(/\d+/g).map(Number); // Extract RGBA values
-    return [
-      Math.max(rgba[0] / 255, 1e-6),
-      Math.max(rgba[1] / 255, 1e-6),
-      Math.max(rgba[2] / 255, 1e-6),
-      1, // Alpha is always 1
-    ];
-  } catch (error) {
-    console.error(`Invalid color: ${hex}`, error);
-    return [1, 0, 0, 1]; // Default to red
-  }
+  // Return the RGBA array with alpha set to 1
+  return [r / 255, g / 255, b / 255, 1];
 }
 
 function toNDC(x, y) {
@@ -216,6 +208,10 @@ function renderDelaunay(positions) {
   const triangleVertices = [];
   const triangleColors = [];
 
+  // Convert hex colors to RGBA
+  const topColor = hexToRGBA(CONFIG.gradientTopColor);
+  const bottomColor = hexToRGBA(CONFIG.gradientBottomColor);
+
   for (let i = 0; i < triangles.length; i += 3) {
     const p1Index = triangles[i];
     const p2Index = triangles[i + 1];
@@ -228,24 +224,23 @@ function renderDelaunay(positions) {
     // Add triangle vertices
     triangleVertices.push(...p1, ...p2, ...p3);
 
-    // Generate a unique key for the triangle based on sorted indices
-    const triangleKey = [p1Index, p2Index, p3Index].sort((a, b) => a - b).join('-');
+    // Calculate the orthocenter (approximation: average of vertices)
+    const orthocenterX = (p1[0] + p2[0] + p3[0]) / 3;
+    const orthocenterY = (p1[1] + p2[1] + p3[1]) / 3;
 
-    // Check if the triangle already has an assigned color
-    if (!delaunayColorsMap.has(triangleKey)) {
-      // Generate a pale, transparent color
-      const color = [
-        Math.random() * 0.6, // Red component (range: 0.7 to 1.0)
-        Math.random() * 0.6, // Green component (range: 0.7 to 1.0)
-        Math.random() * 0.6, // Blue component (range: 0.7 to 1.0)
-        0.5, // Alpha (transparency, range: 0.0 to 1.0, lower = more transparent)
-      ];
-      delaunayColorsMap.set(triangleKey, color);
-    }
+    // Map the orthocenter's Y-coordinate to a gradient
+    const normalizedY = (orthocenterY + 1) / 2; // Normalize Y from [-1, 1] to [0, 1]
 
-    // Retrieve the color for this triangle
-    const color = delaunayColorsMap.get(triangleKey);
-    triangleColors.push(...color, ...color, ...color);
+    // Interpolate between the top and bottom colors
+    const gradientColor = [
+      topColor[0] * (1 - normalizedY) + bottomColor[0] * normalizedY, // Red
+      topColor[1] * (1 - normalizedY) + bottomColor[1] * normalizedY, // Green
+      topColor[2] * (1 - normalizedY) + bottomColor[2] * normalizedY, // Blue
+      topColor[3] * (1 - normalizedY) + bottomColor[3] * normalizedY  // Alpha
+    ];
+
+    // Add the same color for all three vertices of the triangle
+    triangleColors.push(...gradientColor, ...gradientColor, ...gradientColor);
   }
 
   // Pass triangle vertices to WebGL
