@@ -193,10 +193,10 @@ function limitVec2(vec, max) {
 function renderDelaunay(positions) {
   // Add four corner vertices to the positions array
   const corners = [
-    -1, 1,  // Top-left corner in NDC
-    1, 1,   // Top-right corner in NDC
-    -1, -1, // Bottom-left corner in NDC
-    1, -1   // Bottom-right corner in NDC
+    -1.25, 1.25,  // Top-left corner in NDC
+    1.25, 1.25,   // Top-right corner in NDC
+    -1.25, -1.25, // Bottom-left corner in NDC
+    1.25, -1.25   // Bottom-right corner in NDC
   ];
   const extendedPositions = positions.concat(corners);
 
