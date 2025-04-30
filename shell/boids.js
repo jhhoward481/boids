@@ -685,6 +685,10 @@ async function main() {
   render();
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  renderGradientKeys();
+});
+
 // Run the main function
 main();
 
@@ -765,4 +769,50 @@ function interpolateGradient(normalizedY, gradientKeys) {
     lowerColor[2] * (1 - t) + upperColor[2] * t, // Blue
     lowerColor[3] * (1 - t) + upperColor[3] * t  // Alpha
   ];
+}
+
+function renderGradientKeys() {
+  const gradientKeyList = document.getElementById('gradientKeyList');
+  gradientKeyList.innerHTML = ''; // Clear the list
+
+  CONFIG.gradientKeys.forEach((key, index) => {
+    const keyDiv = document.createElement('div');
+    keyDiv.className = 'gradient-key';
+
+    keyDiv.innerHTML = `
+      <label>
+        Color:
+        <input type="color" value="${key.color}" onchange="updateGradientKey(${index}, 'color', this.value)">
+      </label>
+      <label>
+        Position:
+        <input type="range" min="0" max="1" step="0.01" value="${key.position}" onchange="updateGradientKey(${index}, 'position', this.value)">
+        <span>${key.position}</span>
+      </label>
+      <button onclick="removeGradientKey(${index})">Remove</button>
+    `;
+
+    gradientKeyList.appendChild(keyDiv);
+  });
+}
+
+function updateGradientKey(index, property, value) {
+  if (property === 'position') {
+    CONFIG.gradientKeys[index].position = parseFloat(value);
+  } else if (property === 'color') {
+    CONFIG.gradientKeys[index].color = value;
+  }
+
+  // Re-render the gradient keys to reflect changes
+  renderGradientKeys();
+}
+
+function addGradientKey() {
+  CONFIG.gradientKeys.push({ position: 0.5, color: '#ffffff' }); // Default values
+  renderGradientKeys();
+}
+
+function removeGradientKey(index) {
+  CONFIG.gradientKeys.splice(index, 1); // Remove the key at the specified index
+  renderGradientKeys();
 }
