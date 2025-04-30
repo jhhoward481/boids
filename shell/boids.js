@@ -454,9 +454,9 @@ function applyPreset(preset) {
       showObjects: false,
       gravityEnabled: false,
       gradientKeys: [
-        { position: 0, color: "#ff0000" },
-        { position: 0.5, color: "#00ff00" },
-        { position: 1, color: "#0000ff" }
+        { position: 0, color: "#ffff00" },
+        { position: 0.5, color: "#00ffff" },
+        { position: 1, color: "#ff00ff" }
       ]
     },
     space: {
@@ -522,11 +522,11 @@ function applyPreset(preset) {
     serene: {
       numBoids: 150,
       perceptionRadius: 80,
-      maxSpeed: 2,
+      maxSpeed: 1,
       maxForce: 0.1,
       bounceEdges: false,
       delaunayMode: true,
-      showPerceptionRadius: true,
+      showPerceptionRadius: false,
       speedColorMode: true,
       showObjects: false,
       gravityEnabled: false,
@@ -555,7 +555,7 @@ function applyPreset(preset) {
         { position: 1, color: "#343a1a" }
       ]
     },
-    halo: {
+    dune: {
       numBoids: 400,
       perceptionRadius: 60,
       maxSpeed: 5,
@@ -567,12 +567,13 @@ function applyPreset(preset) {
       showObjects: false,
       gravityEnabled: false,
       gradientKeys: [
-        { position: 0, color: "#000000" },
-        { position: 0.2, color: "#2E8B57" },
-        { position: 0.4, color: "#32CD32" },
-        { position: 0.6, color: "#87CEEB" },
-        { position: 0.8, color: "#ADD8E6" },
-        { position: 1, color: "#FFFFFF" }
+        { position: 0, color: "#443742" }, // Black
+        { position: 0.3, color: "#846c5b" }, // Sea green
+        { position: 0.4, color: "#cea07e" }, // Covenant purple
+        { position: 0.7, color: "#edd9a3" }, // Lime green
+        { position: 0.75, color: "#e2e8c0" }, // Sky blue
+        { position: 0.9, color: "#e2e8c0" }, // Light blue
+        { position: 1, color: "#000000" } // White
       ]
     },
     hell: {
@@ -607,6 +608,26 @@ function applyPreset(preset) {
         { position: 0, color: "#FFFACD" },
         { position: 0.5, color: "#FFD700" },
         { position: 1, color: "#FF69B4" }
+      ]
+    },
+    max: {
+      numBoids: 2000, // Maximum number of boids
+      perceptionRadius: 100, // Large perception radius
+      maxSpeed: 20, // High speed
+      maxForce: 0.5, // High steering force
+      bounceEdges: false,
+      delaunayMode: false,
+      showPerceptionRadius: false,
+      speedColorMode: true,
+      showObjects: true,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#080708" }, // Bright red
+        { position: 0.2, color: "#3772ff" }, // Bright green
+        { position: 0.4, color: "#df2935" }, // Bright blue
+        { position: 0.6, color: "#fdca40" }, // Bright yellow
+        { position: 0.8, color: "#e6e8e6" }, // Bright magenta
+        { position: 1, color: "#023c40" } // Bright cyan
       ]
     }
   };

@@ -29,7 +29,20 @@
       margin-left: 10px;
       box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
     }
-    #controls label {
+    #presets {
+      width: 200px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      overflow-y: auto;
+      height: 600px;
+      margin-left: 10px;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+    }
+    #controls label,
+    #presets button {
       display: block;
       margin-bottom: 10px;
     }
@@ -128,21 +141,15 @@
       Gravity:
       <input type="checkbox" id="gravityToggle" onclick="updateConfig('gravityEnabled', this.checked)">
     </label>
-    <!-- <label>
-      Gradient Top Color:
-      <input type="color" id="gradientBottomColor" value="#FFCF56" onchange="updateConfig('gradientBottomColor', this.value)">
-    </label>
-    <label>
-      Gradient Bottom Color:
-      <input type="color" id="gradientTopColor" value="#3AB795" onchange="updateConfig('gradientTopColor', this.value)">
-    </label> -->
     <div id="gradientControls">
       <h3>Gradient Keys</h3>
       <div id="gradientKeyList"></div>
       <button onclick="addGradientKey()">Add Gradient Key</button>
     </div>
-    <hr>
-    <h4>Presets</h4>
+  </div>
+
+  <div id="presets">
+    <h3>Presets</h3>
     <button onclick="applyPreset('calm')">Calm</button>
     <button onclick="applyPreset('chaotic')">Chaotic</button>
     <button onclick="applyPreset('space')">Space</button>
@@ -150,9 +157,10 @@
     <button onclick="applyPreset('spooky')">Spooky</button>
     <button onclick="applyPreset('serene')">Serene</button>
     <button onclick="applyPreset('indie')">Indie</button>
-    <button onclick="applyPreset('halo')">Halo</button>
+    <button onclick="applyPreset('dune')">Dune</button>
     <button onclick="applyPreset('hell')">Hell</button>
     <button onclick="applyPreset('lemonade')">Lemonade</button>
+    <button onclick="applyPreset('max')">MAX</button>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/delaunator@5.0.0/delaunator.min.js"></script>
   <script type="text/javascript" src="gl-matrix-min.js"></script>
