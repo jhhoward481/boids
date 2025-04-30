@@ -7,8 +7,14 @@ const CONFIG = {
   bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
   scared: 100, // Scared parameter (0 = no deflection, 100 = maximum deflection)
   foresight: 120, // Length of the line representing what boids can see
-  gradientTopColor: "#3AB795", // Yellow (hex) for the top of the screen
-  gradientBottomColor: "#FFCF56" // Green (hex) for the bottom of the screen
+  gradientKeys: [
+    { position: 0, color: "#00ffff" }, // Top (greenish)
+    { position: 0.1, color: "#ffffff" }, // Top (greenish)
+    { position: 0.2, color: "#00ffff" }, // Middle (yellowish)
+    { position: 0.7, color: "#0000ff" }, // Middle (yellowish)
+    { position: 0.75, color: "#aaff00" }, // Middle (yellowish)
+    { position: 1, color: "#44ff11" } // Bottom (reddish)
+  ]
 };
 
 // Global variables
@@ -19,11 +25,11 @@ let boids = [];
 let positionBuffer, colorBuffer;
 let aPosition, aColor;
 let program;
-let delaunayMode = false; // Toggle for Delaunay triangulation
+let delaunayMode = true; // Toggle for Delaunay triangulation
 let objects = [];
 let showPerceptionRadius = false;
 let speedColorMode = true; // Toggle for speed-based coloring
-let showObjects = true; // Toggle for displaying objects
+let showObjects = false; // Toggle for displaying objects
 let gravityEnabled = false; // Toggle for gravity
 
 // Global variables for FPS calculation
@@ -208,10 +214,6 @@ function renderDelaunay(positions) {
   const triangleVertices = [];
   const triangleColors = [];
 
-  // Convert hex colors to RGBA
-  const topColor = hexToRGBA(CONFIG.gradientTopColor);
-  const bottomColor = hexToRGBA(CONFIG.gradientBottomColor);
-
   for (let i = 0; i < triangles.length; i += 3) {
     const p1Index = triangles[i];
     const p2Index = triangles[i + 1];
@@ -228,16 +230,12 @@ function renderDelaunay(positions) {
     const orthocenterX = (p1[0] + p2[0] + p3[0]) / 3;
     const orthocenterY = (p1[1] + p2[1] + p3[1]) / 3;
 
-    // Map the orthocenter's Y-coordinate to a gradient
-    const normalizedY = (orthocenterY + 1) / 2; // Normalize Y from [-1, 1] to [0, 1]
+    // Map the orthocenter's Y-coordinate to a normalized value [0, 1]
+    // Reverse the Y-axis so 0 corresponds to the top and 1 corresponds to the bottom
+    const normalizedY = (1 - orthocenterY) / 2; // Normalize Y from [-1, 1] to [0, 1]
 
-    // Interpolate between the top and bottom colors
-    const gradientColor = [
-      topColor[0] * (1 - normalizedY) + bottomColor[0] * normalizedY, // Red
-      topColor[1] * (1 - normalizedY) + bottomColor[1] * normalizedY, // Green
-      topColor[2] * (1 - normalizedY) + bottomColor[2] * normalizedY, // Blue
-      topColor[3] * (1 - normalizedY) + bottomColor[3] * normalizedY  // Alpha
-    ];
+    // Interpolate between gradient keys
+    const gradientColor = interpolateGradient(normalizedY, CONFIG.gradientKeys);
 
     // Add the same color for all three vertices of the triangle
     triangleColors.push(...gradientColor, ...gradientColor, ...gradientColor);
@@ -738,4 +736,33 @@ function checkLineHits() {
       }
     }
   }
+}
+
+function interpolateGradient(normalizedY, gradientKeys) {
+  // Find the two gradient keys to interpolate between
+  let lowerKey = gradientKeys[0];
+  let upperKey = gradientKeys[gradientKeys.length - 1];
+
+  for (let i = 0; i < gradientKeys.length - 1; i++) {
+    if (normalizedY >= gradientKeys[i].position && normalizedY <= gradientKeys[i + 1].position) {
+      lowerKey = gradientKeys[i];
+      upperKey = gradientKeys[i + 1];
+      break;
+    }
+  }
+
+  // Calculate the interpolation factor
+  const t = (normalizedY - lowerKey.position) / (upperKey.position - lowerKey.position);
+
+  // Convert hex colors to RGBA
+  const lowerColor = hexToRGBA(lowerKey.color);
+  const upperColor = hexToRGBA(upperKey.color);
+
+  // Interpolate between the two colors
+  return [
+    lowerColor[0] * (1 - t) + upperColor[0] * t, // Red
+    lowerColor[1] * (1 - t) + upperColor[1] * t, // Green
+    lowerColor[2] * (1 - t) + upperColor[2] * t, // Blue
+    lowerColor[3] * (1 - t) + upperColor[3] * t  // Alpha
+  ];
 }
