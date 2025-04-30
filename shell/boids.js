@@ -1,19 +1,16 @@
 // Constants
 const CONFIG = {
-  numBoids: 1000, // Number of boids
+  numBoids: 100, // Number of boids
   perceptionRadius: 50, // Radius within which boids perceive others
-  maxSpeed: 7, // Maximum speed of boids
-  maxForce: 0.05, // Maximum steering force
-  bounceEdges: true, // Toggle for edge behavior: true = bounce, false = wrap around
+  maxSpeed: 3, // Maximum speed of boids
+  maxForce: 0.2, // Maximum steering force
+  bounceEdges: false, // Toggle for edge behavior: true = bounce, false = wrap around
   scared: 100, // Scared parameter (0 = no deflection, 100 = maximum deflection)
   foresight: 120, // Length of the line representing what boids can see
   gradientKeys: [
-    { position: 0, color: "#00ffff" }, // Top (greenish)
-    { position: 0.1, color: "#ffffff" }, // Top (greenish)
-    { position: 0.2, color: "#00ffff" }, // Middle (yellowish)
-    { position: 0.7, color: "#0000ff" }, // Middle (yellowish)
-    { position: 0.75, color: "#aaff00" }, // Middle (yellowish)
-    { position: 1, color: "#44ff11" } // Bottom (reddish)
+    { position: 0, color: "#3AB795" }, // Green at the top
+    { position: 0.5, color: "#FFCF56" }, // Yellow in the middle
+    { position: 1, color: "#FF5733" } // Red at the bottom
   ]
 };
 
@@ -25,7 +22,7 @@ let boids = [];
 let positionBuffer, colorBuffer;
 let aPosition, aColor;
 let program;
-let delaunayMode = true; // Toggle for Delaunay triangulation
+let delaunayMode = false; // Toggle for Delaunay triangulation
 let objects = [];
 let showPerceptionRadius = false;
 let speedColorMode = true; // Toggle for speed-based coloring
@@ -439,6 +436,11 @@ function applyPreset(preset) {
       speedColorMode: true,
       showObjects: false,
       gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#3AB795" }, // Green at the top
+        { position: 0.5, color: "#FFCF56" }, // Yellow in the middle
+        { position: 1, color: "#FF5733" } // Red at the bottom
+      ]
     },
     chaotic: {
       numBoids: 1000,
@@ -451,7 +453,12 @@ function applyPreset(preset) {
       speedColorMode: true,
       showObjects: false,
       gravityEnabled: false,
-    },
+      gradientKeys: [
+        { position: 0, color: "#ff0000" }, // Red at the top
+        { position: 0.5, color: "#00ff00" }, // Green in the middle
+        { position: 1, color: "#0000ff" } // Blue at the bottom
+      ]
+    }
   };
 
   const config = presets[preset];
@@ -459,18 +466,23 @@ function applyPreset(preset) {
 
   // Apply each preset value
   for (const [key, value] of Object.entries(config)) {
-    updateConfig(key, value);
+    if (key === 'gradientKeys') {
+      CONFIG.gradientKeys = value; // Update gradient keys
+      renderGradientKeys(); // Re-render the gradient keys UI
+    } else {
+      updateConfig(key, value);
 
-    // Update sliders and checkboxes in the UI
-    const input = document.getElementById(key);
-    if (input) {
-      if (input.type === 'checkbox') {
-        input.checked = value;
-      } else {
-        input.value = value;
-        const valueSpan = document.getElementById(`${key}Value`);
-        if (valueSpan) {
-          valueSpan.textContent = value;
+      // Update sliders and checkboxes in the UI
+      const input = document.getElementById(key);
+      if (input) {
+        if (input.type === 'checkbox') {
+          input.checked = value;
+        } else {
+          input.value = value;
+          const valueSpan = document.getElementById(`${key}Value`);
+          if (valueSpan) {
+            valueSpan.textContent = value;
+          }
         }
       }
     }
