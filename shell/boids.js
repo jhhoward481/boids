@@ -11,7 +11,9 @@ const CONFIG = {
     { position: 0, color: "#3AB795" }, // Green at the top
     { position: 0.5, color: "#FFCF56" }, // Yellow in the middle
     { position: 1, color: "#FF5733" } // Red at the bottom
-  ]
+  ],
+  showTrails: false, // Toggle for showing trails
+  trailLength: 50 // Increase the trail length
 };
 
 // Global variables
@@ -28,6 +30,7 @@ let showPerceptionRadius = false;
 let speedColorMode = true; // Toggle for speed-based coloring
 let showObjects = false; // Toggle for displaying objects
 let gravityEnabled = false; // Toggle for gravity
+let boidTrails = []; // Array of arrays to store trails for each boid
 
 // Global variables for FPS calculation
 let lastFrameTime = performance.now();
@@ -39,23 +42,55 @@ let delaunayColorsMap = new Map(); // Map to store colors for each triangle base
 
 // Boid Class
 class Boid {
-  constructor(x, y) {
-    this.position = vec2.fromValues(x, y); // Use vec2 for position
-    this.velocity = vec2.create();
-    vec2.random(this.velocity, CONFIG.maxSpeed); // Random velocity
-    this.acceleration = vec2.create(); // Zero acceleration
+  constructor(x, y, index) {
+    this.position = vec2.fromValues(x, y);
+    this.velocity = vec2.fromValues(Math.random() * 2 - 1, Math.random() * 2 - 1);
+    this.acceleration = vec2.create();
+    this.index = index; // Assign index
   }
 
   update() {
-    if (gravityEnabled) {
-      const gravity = vec2.fromValues(0, 0.1); // Gravity force pointing downward
-      this.applyForce(gravity);
-    }
-
     vec2.add(this.velocity, this.velocity, this.acceleration); // velocity += acceleration
     limitVec2(this.velocity, CONFIG.maxSpeed); // Limit velocity
     vec2.add(this.position, this.position, this.velocity); // position += velocity
     vec2.set(this.acceleration, 0, 0); // Reset acceleration
+
+    // Calculate the current color based on speed if speed-based coloring is enabled
+    let color = currentColor; // Default color
+    if (speedColorMode) {
+      const speed = vec2.length(this.velocity);
+      const speedRatio = speed / CONFIG.maxSpeed; // Normalize speed to [0, 1]
+
+      // Interpolate between colors based on speed
+      if (speedRatio < 0.5) {
+        // Slow: Dark purple/blue
+        color = [
+          0.2 + speedRatio * 0.6, // Red
+          0.0,                   // Green
+          0.5 + speedRatio * 0.5, // Blue
+          1.0                    // Alpha
+        ];
+      } else {
+        // Fast: Pink
+        color = [
+          0.5 + (speedRatio - 0.5) * 0.5, // Red
+          0.0,                            // Green
+          0.5 - (speedRatio - 0.5) * 0.5, // Blue
+          1.0                             // Alpha
+        ];
+      }
+    }
+
+    // Add the current position and color to the trail
+    if (CONFIG.showTrails) {
+      const trail = boidTrails[this.index];
+      trail.push({ position: vec2.clone(this.position), color: [...color] });
+
+      // Remove the oldest position if the trail exceeds the maximum length
+      if (trail.length > CONFIG.trailLength) {
+        trail.shift();
+      }
+    }
   }
 
   applyForce(force) {
@@ -418,7 +453,8 @@ function updateConfig(key, value) {
   if (key === 'numBoids') {
     boids = [];
     for (let i = 0; i < CONFIG.numBoids; i++) {
-      boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height));
+      boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height, i));
+      boidTrails.push([]); // Initialize an empty trail for each boid
     }
   }
 }
@@ -769,6 +805,11 @@ function render() {
     gl.drawArrays(gl.TRIANGLES, 0, triangleVertices.length / 2);
   }
 
+  // Render trails if enabled
+  if (CONFIG.showTrails) {
+    renderTrails();
+  }
+
   // Render objects if enabled
   if (showObjects) {
     renderObjects();
@@ -829,9 +870,10 @@ async function main() {
   positionBuffer = gl.createBuffer();
   colorBuffer = gl.createBuffer();
 
-  // Initialize boids
+  // Initialize boids and their trails
   for (let i = 0; i < CONFIG.numBoids; i++) {
-    boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height));
+    boids.push(new Boid(Math.random() * canvas.width, Math.random() * canvas.height, i));
+    boidTrails.push([]); // Initialize an empty trail for each boid
   }
 
   // Load objects from JSON
@@ -998,4 +1040,33 @@ function addGradientKey() {
 function removeGradientKey(index) {
   CONFIG.gradientKeys.splice(index, 1); // Remove the key at the specified index
   renderGradientKeys();
+}
+
+function renderTrails() {
+  const trailVertices = [];
+  const trailColors = [];
+
+  for (let i = 0; i < boids.length; i++) {
+    const trail = boidTrails[i];
+    for (const point of trail) {
+      const [x, y] = toNDC(point.position[0], point.position[1]); // Convert to NDC
+      trailVertices.push(x, y);
+      trailColors.push(...point.color); // Use the color stored at that position
+    }
+  }
+
+  // Pass trail vertices to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(trailVertices), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aPosition);
+
+  // Pass trail colors to WebGL
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(trailColors), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(aColor);
+
+  // Draw the trails as points
+  gl.drawArrays(gl.POINTS, 0, trailVertices.length / 2);
 }

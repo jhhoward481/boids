@@ -19,4 +19,4 @@ Rubric:
 - 10: obstacles √
 - 10: simple color-changing (based on speed, etc) √
 - 15: advanced color-changing (gradients, other cool effects) √
-- 10: procedural gen: clouds, fluids, flocks?
+- 10: procedural gen: clouds, fluids, flocks? √
