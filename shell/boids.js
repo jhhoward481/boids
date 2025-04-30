@@ -437,9 +437,9 @@ function applyPreset(preset) {
       showObjects: false,
       gravityEnabled: false,
       gradientKeys: [
-        { position: 0, color: "#3AB795" }, // Green at the top
-        { position: 0.5, color: "#FFCF56" }, // Yellow in the middle
-        { position: 1, color: "#FF5733" } // Red at the bottom
+        { position: 0, color: "#3AB795" },
+        { position: 0.5, color: "#FFCF56" },
+        { position: 1, color: "#FF5733" }
       ]
     },
     chaotic: {
@@ -454,9 +454,159 @@ function applyPreset(preset) {
       showObjects: false,
       gravityEnabled: false,
       gradientKeys: [
-        { position: 0, color: "#ff0000" }, // Red at the top
-        { position: 0.5, color: "#00ff00" }, // Green in the middle
-        { position: 1, color: "#0000ff" } // Blue at the bottom
+        { position: 0, color: "#ff0000" },
+        { position: 0.5, color: "#00ff00" },
+        { position: 1, color: "#0000ff" }
+      ]
+    },
+    space: {
+      numBoids: 500,
+      perceptionRadius: 60,
+      maxSpeed: 5,
+      maxForce: 0.1,
+      bounceEdges: true,
+      delaunayMode: true,
+      showPerceptionRadius: false,
+      speedColorMode: false,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#000000" },
+        { position: 0.3, color: "#1B1F4A" },
+        { position: 0.6, color: "#4A4E9A" },
+        { position: 1, color: "#FFFFFF" }
+      ]
+    },
+    landscape: {
+      numBoids: 300,
+      perceptionRadius: 70,
+      maxSpeed: 4,
+      maxForce: 0.15,
+      bounceEdges: false,
+      delaunayMode: true,
+      showPerceptionRadius: false,
+      speedColorMode: true,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#87CEEB" },
+        { position: 0.1, color: "#ffffff" },
+        { position: 0.15, color: "#87CEEB" },
+        { position: 0.2, color: "#00BFFF" },
+        { position: 0.4, color: "#228B22" },
+        { position: 0.6, color: "#32CD32" },
+        { position: 0.8, color: "#8B4513" },
+        { position: 1, color: "#654321" }
+      ]
+    },
+    spooky: {
+      numBoids: 200,
+      perceptionRadius: 40,
+      maxSpeed: 3,
+      maxForce: 0.2,
+      bounceEdges: true,
+      delaunayMode: true,
+      showPerceptionRadius: false,
+      speedColorMode: false,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#000000" },
+        { position: 0.2, color: "#2E0854" },
+        { position: 0.4, color: "#4B0082" },
+        { position: 0.6, color: "#8B0000" },
+        { position: 0.8, color: "#FF4500" },
+        { position: 1, color: "#FF6347" }
+      ]
+    },
+    serene: {
+      numBoids: 150,
+      perceptionRadius: 80,
+      maxSpeed: 2,
+      maxForce: 0.1,
+      bounceEdges: false,
+      delaunayMode: true,
+      showPerceptionRadius: true,
+      speedColorMode: true,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#ADD8E6" },
+        { position: 0.5, color: "#FFFFFF" },
+        { position: 1, color: "#87CEFA" }
+      ]
+    },
+    indie: {
+      numBoids: 250,
+      perceptionRadius: 50,
+      maxSpeed: 4,
+      maxForce: 0.01,
+      bounceEdges: true,
+      delaunayMode: true,
+      showPerceptionRadius: false,
+      speedColorMode: true,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#a80874" },
+        { position: 0.2, color: "#b7fdfe" },
+        { position: 0.5, color: "#5ef38c" },
+        { position: 0.7, color: "#2b9720" },
+        { position: 1, color: "#343a1a" }
+      ]
+    },
+    halo: {
+      numBoids: 400,
+      perceptionRadius: 60,
+      maxSpeed: 5,
+      maxForce: 0.15,
+      bounceEdges: true,
+      delaunayMode: true,
+      showPerceptionRadius: false,
+      speedColorMode: false,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#000000" },
+        { position: 0.2, color: "#2E8B57" },
+        { position: 0.4, color: "#32CD32" },
+        { position: 0.6, color: "#87CEEB" },
+        { position: 0.8, color: "#ADD8E6" },
+        { position: 1, color: "#FFFFFF" }
+      ]
+    },
+    hell: {
+      numBoids: 15,
+      perceptionRadius: 30,
+      maxSpeed: 6,
+      maxForce: 0.25,
+      bounceEdges: true,
+      delaunayMode: true,
+      showPerceptionRadius: false,
+      speedColorMode: false,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#8B0000" },
+        { position: 0.5, color: "#FF4500" },
+        { position: 1, color: "#FFD700" }
+      ]
+    },
+    lemonade: {
+      numBoids: 200,
+      perceptionRadius: 60,
+      maxSpeed: 3,
+      maxForce: 0.2,
+      bounceEdges: false,
+      delaunayMode: true,
+      showPerceptionRadius: true,
+      speedColorMode: true,
+      showObjects: false,
+      gravityEnabled: false,
+      gradientKeys: [
+        { position: 0, color: "#FFFACD" },
+        { position: 0.5, color: "#FFD700" },
+        { position: 1, color: "#FF69B4" }
       ]
     }
   };
